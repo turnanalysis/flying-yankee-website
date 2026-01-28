@@ -499,6 +499,9 @@
                         <span id="dvr-current">0:00</span> / <span id="dvr-duration">0:00</span>
                     </div>
                     <div class="dvr-buttons">
+                        <button class="dvr-btn" onclick="seekToTime(9, 0)" title="Jump to 9:00 AM">9h00</button>
+                        <button class="dvr-btn" onclick="skipBack(7200)" title="Back 2 hours">-2h</button>
+                        <button class="dvr-btn" onclick="skipBack(3600)" title="Back 1 hour">-1h</button>
                         <button class="dvr-btn" onclick="skipBack(300)" title="Back 5 minutes">-5m</button>
                         <button class="dvr-btn" onclick="skipBack(60)" title="Back 1 minute">-1m</button>
                         <button class="dvr-btn" onclick="skipBack(10)" title="Back 10 seconds">-10s</button>
@@ -662,6 +665,31 @@
             if (range) {
                 const newTime = Math.min(range.end - 1, video.currentTime + seconds);
                 video.currentTime = newTime;
+            }
+        }
+
+        function seekToTime(hour, minute) {
+            // Seek to a specific time of day (EST)
+            const range = getSeekableRange();
+            if (!range) return;
+
+            const now = new Date();
+            const target = new Date(now);
+            target.setHours(hour, minute, 0, 0);
+
+            // If target is in the future, it's not available yet
+            if (target > now) return;
+
+            // Calculate how many seconds ago that time was
+            const secondsAgo = (now - target) / 1000;
+
+            // Seek to that point in the DVR window
+            const targetTime = range.end - secondsAgo;
+            if (targetTime >= range.start) {
+                video.currentTime = targetTime;
+            } else {
+                // Target is before DVR window, go to start
+                video.currentTime = range.start;
             }
         }
 
