@@ -117,7 +117,7 @@
             background: #000;
         }
 
-        /* Live badge */
+        /* Live/DVR badge */
         .live-badge {
             position: absolute;
             top: 1rem;
@@ -133,6 +133,7 @@
             align-items: center;
             gap: 0.4rem;
             z-index: 10;
+            transition: background 0.3s;
         }
 
         .live-badge::before {
@@ -144,9 +145,141 @@
             animation: pulse 1.5s infinite;
         }
 
+        .live-badge.dvr-mode {
+            background: #1a5fb4;
+        }
+
+        .live-badge.dvr-mode::before {
+            animation: none;
+            opacity: 0.7;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
+        }
+
+        /* DVR Controls */
+        .dvr-controls {
+            background: #111;
+            padding: 1rem 1.5rem;
+            border-radius: 0 0 12px 12px;
+            display: none;
+        }
+
+        .dvr-controls.active {
+            display: block;
+        }
+
+        .dvr-timeline {
+            margin-bottom: 0.75rem;
+        }
+
+        .dvr-scrubber {
+            width: 100%;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dvr-scrubber:hover {
+            height: 12px;
+        }
+
+        .dvr-buffered {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: #444;
+            pointer-events: none;
+        }
+
+        .dvr-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: #1a5fb4;
+            pointer-events: none;
+        }
+
+        .dvr-handle {
+            position: absolute;
+            top: 50%;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+
+        .dvr-scrubber:hover .dvr-handle {
+            opacity: 1;
+        }
+
+        .dvr-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .dvr-time {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .dvr-buttons {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .dvr-btn {
+            background: #222;
+            border: none;
+            color: #fff;
+            padding: 0.4rem 0.7rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+
+        .dvr-btn:hover {
+            background: #333;
+        }
+
+        .dvr-btn:active {
+            background: #444;
+        }
+
+        .go-live-btn {
+            background: #e01b24;
+            font-weight: 600;
+        }
+
+        .go-live-btn:hover {
+            background: #c01c28;
+        }
+
+        .go-live-btn.at-live {
+            background: #2ec27e;
+        }
+
+        .dvr-kbd-hint {
+            color: #666;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
         }
 
         /* Offline state */
@@ -309,6 +442,24 @@
                 flex: 1;
                 justify-content: center;
             }
+
+            .dvr-controls {
+                padding: 0.75rem 1rem;
+            }
+
+            .dvr-buttons {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .dvr-info {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .dvr-kbd-hint {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -327,12 +478,35 @@
     <main>
         <div class="video-wrapper">
             <div class="video-container">
-                <div class="live-badge">Live</div>
+                <div id="live-badge" class="live-badge">Live</div>
                 <video id="video" controls playsinline></video>
                 <div id="offline-overlay" class="offline-overlay">
                     <div class="offline-icon">📡</div>
                     <div class="offline-text">Stream Offline</div>
                     <div class="offline-subtext">Check back during race times (8am - 4pm EST)</div>
+                </div>
+            </div>
+            <div id="dvr-controls" class="dvr-controls">
+                <div class="dvr-timeline">
+                    <div id="dvr-scrubber" class="dvr-scrubber">
+                        <div id="dvr-buffered" class="dvr-buffered"></div>
+                        <div id="dvr-progress" class="dvr-progress"></div>
+                        <div id="dvr-handle" class="dvr-handle"></div>
+                    </div>
+                </div>
+                <div class="dvr-info">
+                    <div class="dvr-time">
+                        <span id="dvr-current">0:00</span> / <span id="dvr-duration">0:00</span>
+                    </div>
+                    <div class="dvr-buttons">
+                        <button class="dvr-btn" onclick="skipBack(300)" title="Back 5 minutes">-5m</button>
+                        <button class="dvr-btn" onclick="skipBack(60)" title="Back 1 minute">-1m</button>
+                        <button class="dvr-btn" onclick="skipBack(10)" title="Back 10 seconds">-10s</button>
+                        <button class="dvr-btn" onclick="skipForward(10)" title="Forward 10 seconds">+10s</button>
+                        <button class="dvr-btn" onclick="skipForward(60)" title="Forward 1 minute">+1m</button>
+                        <button id="go-live-btn" class="dvr-btn go-live-btn" onclick="goLive()">Go Live</button>
+                        <span class="dvr-kbd-hint">Keys: ←/→ skip, L = live</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -366,26 +540,199 @@
         const offlineOverlay = document.getElementById('offline-overlay');
         const statusDot = document.getElementById('status-dot');
         const statusText = document.getElementById('status-text');
-        const liveBadge = document.querySelector('.live-badge');
+        const liveBadge = document.getElementById('live-badge');
+
+        // DVR Elements
+        const dvrControls = document.getElementById('dvr-controls');
+        const dvrScrubber = document.getElementById('dvr-scrubber');
+        const dvrBuffered = document.getElementById('dvr-buffered');
+        const dvrProgress = document.getElementById('dvr-progress');
+        const dvrHandle = document.getElementById('dvr-handle');
+        const dvrCurrent = document.getElementById('dvr-current');
+        const dvrDuration = document.getElementById('dvr-duration');
+        const goLiveBtn = document.getElementById('go-live-btn');
 
         const streamUrl = 'https://vwgvyk.egress.t7c7zl.mediapackagev2.us-east-1.amazonaws.com/out/v1/channel-group-FY/channel-FY/standard-hls/manifest.m3u8';
-        
+
         let hls = null;
         let retryCount = 0;
         const maxRetries = 5;
         const retryDelay = 5000; // 5 seconds
+        let isDragging = false;
+        let isAtLiveEdge = true;
+        const liveEdgeThreshold = 15; // seconds from live to consider "at live edge"
 
         function updateStatus(status, text) {
             statusDot.className = 'status-dot ' + status;
             statusText.textContent = text;
-            
+
             if (status === 'live') {
                 offlineOverlay.classList.add('hidden');
                 liveBadge.style.display = 'flex';
+                dvrControls.classList.add('active');
             } else if (status === 'offline') {
                 offlineOverlay.classList.remove('hidden');
                 liveBadge.style.display = 'none';
+                dvrControls.classList.remove('active');
             }
+        }
+
+        function formatTime(seconds) {
+            if (!isFinite(seconds) || seconds < 0) return '0:00';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            if (h > 0) {
+                return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function getSeekableRange() {
+            if (video.seekable && video.seekable.length > 0) {
+                return {
+                    start: video.seekable.start(0),
+                    end: video.seekable.end(0),
+                    duration: video.seekable.end(0) - video.seekable.start(0)
+                };
+            }
+            return null;
+        }
+
+        function updateDVRUI() {
+            const range = getSeekableRange();
+            if (!range) return;
+
+            const currentTime = video.currentTime;
+            const progress = (currentTime - range.start) / range.duration;
+
+            // Update progress bar
+            dvrProgress.style.width = `${Math.max(0, Math.min(100, progress * 100))}%`;
+            dvrHandle.style.left = `${Math.max(0, Math.min(100, progress * 100))}%`;
+
+            // Update time displays
+            const timeFromStart = currentTime - range.start;
+            dvrCurrent.textContent = formatTime(timeFromStart);
+            dvrDuration.textContent = formatTime(range.duration);
+
+            // Check if at live edge
+            const distanceFromLive = range.end - currentTime;
+            isAtLiveEdge = distanceFromLive < liveEdgeThreshold;
+
+            // Update badge and button
+            if (isAtLiveEdge) {
+                liveBadge.textContent = 'Live';
+                liveBadge.classList.remove('dvr-mode');
+                goLiveBtn.classList.add('at-live');
+                goLiveBtn.textContent = 'Live';
+            } else {
+                const behindText = formatTime(distanceFromLive);
+                liveBadge.textContent = `-${behindText}`;
+                liveBadge.classList.add('dvr-mode');
+                goLiveBtn.classList.remove('at-live');
+                goLiveBtn.textContent = 'Go Live';
+            }
+
+            // Update buffered indicator
+            if (video.buffered && video.buffered.length > 0) {
+                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                const bufferedProgress = (bufferedEnd - range.start) / range.duration;
+                dvrBuffered.style.width = `${Math.max(0, Math.min(100, bufferedProgress * 100))}%`;
+            }
+        }
+
+        function goLive() {
+            const range = getSeekableRange();
+            if (range) {
+                video.currentTime = range.end - 3; // 3 seconds behind live edge
+                if (video.paused) video.play();
+            }
+        }
+
+        function skipBack(seconds) {
+            const range = getSeekableRange();
+            if (range) {
+                const newTime = Math.max(range.start, video.currentTime - seconds);
+                video.currentTime = newTime;
+            }
+        }
+
+        function skipForward(seconds) {
+            const range = getSeekableRange();
+            if (range) {
+                const newTime = Math.min(range.end - 1, video.currentTime + seconds);
+                video.currentTime = newTime;
+            }
+        }
+
+        function seekToPosition(clientX) {
+            const rect = dvrScrubber.getBoundingClientRect();
+            const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            const range = getSeekableRange();
+            if (range) {
+                video.currentTime = range.start + (percent * range.duration);
+            }
+        }
+
+        function setupScrubber() {
+            dvrScrubber.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                seekToPosition(e.clientX);
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    seekToPosition(e.clientX);
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // Touch support
+            dvrScrubber.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                seekToPosition(e.touches[0].clientX);
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                if (isDragging) {
+                    seekToPosition(e.touches[0].clientX);
+                }
+            });
+
+            document.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+
+            // Click to seek
+            dvrScrubber.addEventListener('click', (e) => {
+                seekToPosition(e.clientX);
+            });
+        }
+
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // Don't handle if typing in an input
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                switch(e.key) {
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        skipBack(e.shiftKey ? 60 : 10);
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        skipForward(e.shiftKey ? 60 : 10);
+                        break;
+                    case 'l':
+                    case 'L':
+                        e.preventDefault();
+                        goLive();
+                        break;
+                }
+            });
         }
 
         function initPlayer() {
@@ -395,11 +742,17 @@
                 if (hls) {
                     hls.destroy();
                 }
-                
+
                 hls = new Hls({
                     enableWorker: true,
                     lowLatencyMode: false,
-                    backBufferLength: 90
+                    backBufferLength: Infinity,      // Keep all buffered content for DVR
+                    liveSyncDurationCount: 3,        // Start 3 segments behind live
+                    liveMaxLatencyDurationCount: 10, // Max latency before catch-up
+                    maxBufferLength: 60,             // 60s forward buffer
+                    maxMaxBufferLength: 120,         // 2min max forward buffer
+                    liveDurationInfinity: false,     // Show seekable range
+                    startPosition: -1                // Start at live edge
                 });
 
                 hls.loadSource(streamUrl);
@@ -416,7 +769,7 @@
 
                 hls.on(Hls.Events.ERROR, function(event, data) {
                     console.log('HLS error:', data);
-                    
+
                     if (data.fatal) {
                         switch (data.type) {
                             case Hls.ErrorTypes.NETWORK_ERROR:
@@ -482,6 +835,14 @@
                 prompt('Copy this link:', window.location.href);
             });
         }
+
+        // Initialize DVR controls
+        setupScrubber();
+        setupKeyboardShortcuts();
+
+        // Update DVR UI periodically
+        video.addEventListener('timeupdate', updateDVRUI);
+        setInterval(updateDVRUI, 1000); // Also update every second for smooth progress
 
         // Initialize player on load
         initPlayer();
